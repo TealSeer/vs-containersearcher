@@ -1,0 +1,15 @@
+{
+    "$schema": "https://moddbcdn.vintagestory.at/schema/modinfo.latest.json",
+    "type": "Code",
+    "modid": "containersearcher",
+    "name": "Container Searcher",
+    "authors": [
+        "TealSeer"
+    ],
+    "description": "Searches all containers around you for a given item.",
+    "version": "1.0.0",
+    "side": "Client",
+    "dependencies": {
+        "game": "1.22.0"
+    }
+}
