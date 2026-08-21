@@ -108,6 +108,7 @@ namespace ContainerSearcher
                     }
                 }
             });
+            if (matchList.Count == 0) return true;
             var highlight = new HighlightRenderer(matchList, clientAPI);
             clientAPI.Event.RegisterRenderer(highlight, EnumRenderStage.Opaque, "searchhighlight");
             currentHighlight = highlight;
