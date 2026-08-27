@@ -114,6 +114,10 @@ namespace ContainerSearcher
             {
                 gui.TryClose();
             }
+            var rayToFirst = Ray.FromPositions(clientAPI.World.Player.Entity.Pos.XYZ, matchList[0].ToVec3d());
+            var normalized = rayToFirst.dir.Normalize();
+            var yaw = Math.Atan2(normalized.X, normalized.Z);
+            clientAPI.World.Player.CameraYaw = (float)yaw;
             var highlight = new HighlightRenderer(matchList, clientAPI);
             clientAPI.Event.RegisterRenderer(highlight, EnumRenderStage.Opaque, "searchhighlight");
             currentHighlight = highlight;
