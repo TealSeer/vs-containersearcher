@@ -109,6 +109,11 @@ namespace ContainerSearcher
                 }
             });
             if (matchList.Count == 0) return true;
+            // Have to copy because calling TryClose modifies list mid-iteration
+            foreach(var gui in new List<GuiDialog>(clientAPI.Gui.OpenedGuis))
+            {
+                gui.TryClose();
+            }
             var highlight = new HighlightRenderer(matchList, clientAPI);
             clientAPI.Event.RegisterRenderer(highlight, EnumRenderStage.Opaque, "searchhighlight");
             currentHighlight = highlight;
