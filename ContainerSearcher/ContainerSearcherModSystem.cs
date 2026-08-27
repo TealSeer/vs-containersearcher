@@ -85,6 +85,35 @@ namespace ContainerSearcher
             }
         }
 
+        private void CloseInventories(InventoryBase? inventory)
+        {
+            if (inventory is null) return;
+            // Character inventory does not respond to CloseInventory so we have to close the GUI directly
+            if (inventory is InventoryBasePlayer)
+            {
+                // Have to copy because calling TryClose modifies list mid-iteration
+                foreach (var gui in new List<GuiDialog>(clientAPI.Gui.OpenedGuis))
+                {
+                    if (gui is (GuiDialogInventory or GuiDialogCharacter)) gui.TryClose();
+                }
+            }
+            else
+            {
+                clientAPI.World.Player.InventoryManager.CloseInventoryAndSync(inventory);
+            }
+        }
+
+        private void SnapToBlock(BlockPos block)
+        {
+            var blockCenter = block.ToVec3f().Add(0.5f, 0.0f, 0.5f);
+            var playerCamera = clientAPI.World.Player.Entity.CameraPos.ToVec3f();
+            var targetVec = new Vec3f(blockCenter.X - playerCamera.X, blockCenter.Y - playerCamera.Y, blockCenter.Z - playerCamera.Z).Normalize();
+            var yaw = Math.Atan2(targetVec.X, targetVec.Z);
+            var pitch = Math.PI + Math.Asin(-targetVec.Y);
+            clientAPI.World.Player.CameraYaw = (float)yaw;
+            clientAPI.World.Player.Entity.Pos.Pitch = (float)pitch;
+        }
+
         private bool SearchHotkey(KeyCombination key)
         {
             if (currentHighlight is not null) return false;
@@ -96,7 +125,7 @@ namespace ContainerSearcher
             var radius = config.SearchRange;
             var minPos = playerLoc.AddCopy(-radius, -radius, -radius);
             var maxPos = playerLoc.AddCopy(radius, radius, radius);
-            var matchList = new List<BlockPos>();
+            var matchList = new SortedList<float, BlockPos>();
             blockAccessor.WalkBlocks(minPos, maxPos, (block, x, y, z) =>
             {
                 var blockEntity = blockAccessor.GetBlockEntity<BlockEntityContainer>(new BlockPos(x, y, z));
@@ -105,29 +134,16 @@ namespace ContainerSearcher
                 foreach(var thing in blockContents)
                 {
                     if(thing.Class == hoveredStack.Class && thing.Id == hoveredStack.Id) {
-                        matchList.Add(blockEntity.Pos);
+                        var distanceToPlayer = blockEntity.Pos.DistanceTo(playerLoc);
+                        matchList.Add(distanceToPlayer, blockEntity.Pos);
                         return;
                     }
                 }
             });
             if (matchList.Count == 0) return true;
-            // Character inventory does not respond to CloseInventory so we have to close the GUI directly
-            if (stackInventory is InventoryBasePlayer)
-            {
-                // Have to copy because calling TryClose modifies list mid-iteration
-                foreach (var gui in new List<GuiDialog>(clientAPI.Gui.OpenedGuis))
-                {
-                    if (gui is (GuiDialogInventory or GuiDialogCharacter)) gui.TryClose();
-                }
-            } else
-            {
-                clientAPI.World.Player.InventoryManager.CloseInventoryAndSync(stackInventory);
-            }
-            var rayToFirst = Ray.FromPositions(clientAPI.World.Player.Entity.Pos.XYZ, matchList[0].ToVec3d());
-            var normalized = rayToFirst.dir.Normalize();
-            var yaw = Math.Atan2(normalized.X, normalized.Z);
-            clientAPI.World.Player.CameraYaw = (float)yaw;
-            var highlight = new HighlightRenderer(matchList, clientAPI);
+            CloseInventories(stackInventory);
+            SnapToBlock(matchList.GetValueAtIndex(0));
+            var highlight = new HighlightRenderer(matchList.Values, clientAPI);
             clientAPI.Event.RegisterRenderer(highlight, EnumRenderStage.Opaque, "searchhighlight");
             currentHighlight = highlight;
             return true;

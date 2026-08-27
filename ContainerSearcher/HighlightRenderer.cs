@@ -6,11 +6,11 @@ using Vintagestory.Client.NoObf;
 
 namespace ContainerSearcher
 {
-    public class HighlightRenderer(List<BlockPos> blocks, ICoreClientAPI clientAPI) : IRenderer, IDisposable
+    public class HighlightRenderer(IList<BlockPos> blocks, ICoreClientAPI clientAPI) : IRenderer, IDisposable
     {
         public double RenderOrder => 0.99f;
         public int RenderRange => 24;
-        protected List<BlockPos> blocks = blocks;
+        protected IList<BlockPos> blocks = blocks;
         protected ICoreClientAPI clientAPI = clientAPI;
         private readonly WireframeCube cubeMesh = WireframeCube.CreateUnitCube(clientAPI);
         private readonly Matrixf mvMatrix = new();
