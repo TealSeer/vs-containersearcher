@@ -4,6 +4,7 @@ using Vintagestory.API.Client;
 using Vintagestory.API.Common;
 using Vintagestory.API.Config;
 using Vintagestory.API.MathTools;
+using Vintagestory.Client.NoObf;
 using Vintagestory.GameContent;
 
 namespace ContainerSearcher
@@ -88,6 +89,7 @@ namespace ContainerSearcher
         {
             if (currentHighlight is not null) return false;
             var hoveredStack = clientAPI.World.Player.InventoryManager.CurrentHoveredSlot?.Itemstack;
+            var stackInventory = clientAPI.World.Player.InventoryManager.CurrentHoveredSlot?.Inventory;
             if (hoveredStack is null) return false;
             var blockAccessor = coreAPI.World.BlockAccessor;
             var playerLoc = clientAPI.World.Player.Entity.Pos.AsBlockPos;
@@ -109,10 +111,17 @@ namespace ContainerSearcher
                 }
             });
             if (matchList.Count == 0) return true;
-            // Have to copy because calling TryClose modifies list mid-iteration
-            foreach(var gui in new List<GuiDialog>(clientAPI.Gui.OpenedGuis))
+            // Character inventory does not respond to CloseInventory so we have to close the GUI directly
+            if (stackInventory is InventoryBasePlayer)
             {
-                gui.TryClose();
+                // Have to copy because calling TryClose modifies list mid-iteration
+                foreach (var gui in new List<GuiDialog>(clientAPI.Gui.OpenedGuis))
+                {
+                    if (gui is (GuiDialogInventory or GuiDialogCharacter)) gui.TryClose();
+                }
+            } else
+            {
+                clientAPI.World.Player.InventoryManager.CloseInventoryAndSync(stackInventory);
             }
             var rayToFirst = Ray.FromPositions(clientAPI.World.Player.Entity.Pos.XYZ, matchList[0].ToVec3d());
             var normalized = rayToFirst.dir.Normalize();
